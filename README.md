@@ -1,14 +1,3 @@
-Parfait — on va transformer ton README en version **🔥 PREMIUM GitHub ready** avec visuels, structuration SaaS et instructions pro (dev + prod).
-
----
-
-# ✅ README.md (VERSION PREMIUM)
-
-Copie/colle directement 👇
-
----
-
-````markdown
 # 🏪 Gestion Commerciale — Application Web Complète (Flask)
 
 ![Python](https://img.shields.io/badge/Python-3.x-blue)
