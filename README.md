@@ -77,8 +77,8 @@
 ### 1. Cloner le projet
 
 ```bash
-git clone git@github.com:aliou90/Gestion-Commerciale-App---App-Complet.git
-cd Gestion-Commerciale-App---App-Complet
+git clone git@github.com:aliou90/Gestion-Commerciale-App.git
+cd Gestion-Commerciale-App
 ````
 
 ---
