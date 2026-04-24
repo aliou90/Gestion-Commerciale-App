@@ -1,0 +1,288 @@
+{% extends 'base.html' %}
+{% block title %}{% if produit %}Modifier{% else %}Nouveau{% endif %} produit{% endblock %}
+{% block page_title %}{% if produit %}Modifier le produit{% else %}Nouveau produit{% endif %}{% endblock %}
+{% block page_subtitle %}{% if produit %}{{ produit.nom }}{% else %}Ajouter un article au catalogue{% endif %}{% endblock %}
+{% block header_actions %}<a href="/produits" class="btn btn-s btn-sm">← Retour</a>{% endblock %}
+
+{% block content %}
+{% set devise = params.get('devise','FCFA') %}
+<div style="max-width:820px;margin:0 auto">
+<form method="post" enctype="multipart/form-data" style="display:flex;flex-direction:column;gap:16px">
+
+  <!-- ── Infos générales ── -->
+  <div class="card">
+    <div class="sect-t">📝 Informations générales</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" class="mob-stack">
+      <div class="fgroup">
+        <label class="flabel">Référence</label>
+        <input type="text" name="reference" value="{{ produit.reference if produit else '' }}" placeholder="Auto-générée si vide" class="finput">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Catégorie</label>
+        <select name="categorie_id" class="finput">
+          <option value="">— Sans catégorie —</option>
+          {% for c in categories %}
+          <option value="{{ c.id }}" {% if produit and produit.categorie_id==c.id %}selected{% endif %}>{{ c.nom }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="fgroup" style="grid-column:1/-1">
+        <label class="flabel">Nom du produit <span class="req">*</span></label>
+        <input type="text" name="nom" value="{{ produit.nom if produit else '' }}" required class="finput" placeholder="Ex: Smartphone Galaxy A54">
+      </div>
+      <div class="fgroup" style="grid-column:1/-1">
+        <label class="flabel">Description</label>
+        <textarea name="description" class="finput" placeholder="Description optionnelle…">{{ produit.description if produit and produit.description else '' }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Prix & Fiscalité ── -->
+  <div class="card">
+    <div class="sect-t">💰 Prix &amp; Fiscalité</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px" class="mob-stack">
+      <div class="fgroup">
+        <label class="flabel">Prix achat ({{ devise }})</label>
+        <input type="number" name="prix_achat" value="{{ produit.prix_achat if produit else 0 }}" min="0" step="1" class="finput">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Prix vente HT ({{ devise }}) <span class="req">*</span></label>
+        <input type="number" name="prix_vente" value="{{ produit.prix_vente if produit else '' }}" min="0" step="1" required class="finput" id="px_ht" placeholder="0">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">TVA (%)</label>
+        <input type="number" name="tva" value="{{ produit.tva if produit else params.get('tva_defaut',18) }}" min="0" max="100" step="0.5" class="finput" id="px_tva">
+      </div>
+    </div>
+    <div style="background:var(--p-soft);border:1.5px solid var(--p-mid);border-radius:var(--rs);padding:12px 14px;font-size:13px;color:var(--p-dark)">
+      Prix TTC calculé : <strong id="ttc_display" style="font-size:15px">—</strong>
+    </div>
+  </div>
+
+  <!-- ── Stock ── -->
+  <div class="card">
+    <div class="sect-t">📊 Stock</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px" class="mob-stack">
+      <div class="fgroup">
+        <label class="flabel">Stock actuel</label>
+        <input type="number" name="stock" value="{{ produit.stock if produit else 0 }}" min="0" class="finput">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Stock minimum (alerte)</label>
+        <input type="number" name="stock_min" value="{{ produit.stock_min if produit else 5 }}" min="0" class="finput">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Unité</label>
+        <select name="unite" class="finput">
+          {% for u in ['unité','kg','g','litre','ml','m','cm','boîte','carton','paire','lot','sachet','bidon','sac'] %}
+          <option {% if produit and produit.unite==u %}selected{% endif %}>{{ u }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       ── IMAGES ──
+  ══════════════════════════════════════════════════ -->
+  <div class="card">
+    <div class="sect-t">🖼️ Images du produit
+      <span style="font-size:11px;color:#94a3b8;font-weight:400;margin-left:4px">PNG, JPG, WEBP — max 5 Mo par image</span>
+    </div>
+
+    {% if images %}
+    <!-- Galerie images existantes -->
+    <div style="margin-bottom:20px">
+      <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+        <span>Images enregistrées</span>
+        <span class="badge bg-p">{{ images|length }}</span>
+        <span style="margin-left:auto;font-size:11px;color:#94a3b8;font-weight:400">Cliquez ⭐ pour définir comme principale · 🗑 pour supprimer</span>
+      </div>
+
+      <div class="img-gallery" id="imgGallery">
+        {% for img in images %}
+        <div class="img-card {% if img.principale %}is-main{% endif %}" id="imgcard-{{ img.id }}" data-id="{{ img.id }}">
+          <img src="/uploads/thumbs/{{ img.thumb_filename }}" alt="{{ img.alt_text or '' }}"
+               onclick="openLB([{% for i in images %}'/uploads/produits/{{ i.filename }}'{% if not loop.last %},{% endif %}{% endfor %}], {{ loop.index0 }})">
+          {% if img.principale %}
+          <div class="ic-badge-main">⭐ Principale</div>
+          {% endif %}
+          <div class="img-card-overlay">
+            <div class="img-card-actions">
+              <button type="button" class="ic-btn ic-btn-star" title="Définir comme principale" onclick="setMain({{ img.id }}, this)">⭐</button>
+              <button type="button" class="ic-btn ic-btn-del" title="Supprimer" onclick="delImg({{ img.id }}, this)">🗑</button>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% if images|length > 1 %}
+      <div style="margin-top:10px;font-size:11.5px;color:#94a3b8;text-align:center">
+        💡 Astuce : vous pouvez réorganiser les images par glisser-déposer
+      </div>
+      {% endif %}
+    </div>
+    <div class="divider"></div>
+    {% endif %}
+
+    <!-- Zone d'upload nouvelles images -->
+    <div>
+      <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:10px">
+        {% if images %}Ajouter de nouvelles images{% else %}Télécharger des images{% endif %}
+      </div>
+      <div class="img-drop-zone" id="dropZone">
+        <input type="file" name="images[]" id="imgInput" accept="image/*" multiple onchange="previewNewImgs(this)">
+        <div style="pointer-events:none">
+          <div style="font-size:36px;margin-bottom:10px">📸</div>
+          <div style="font-size:13px;font-weight:650;color:#475569">Glissez vos images ici</div>
+          <div style="font-size:12px;color:#94a3b8;margin-top:5px">ou cliquez pour parcourir · Plusieurs fichiers acceptés</div>
+          <div style="margin-top:10px;display:flex;justify-content:center;gap:8px;flex-wrap:wrap">
+            <span class="badge bg-gr">PNG</span><span class="badge bg-gr">JPG</span>
+            <span class="badge bg-gr">WEBP</span><span class="badge bg-gr">GIF</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Prévisualisation nouvelles images -->
+      <div class="new-preview-grid" id="newPreviewGrid"></div>
+    </div>
+  </div>
+
+  <!-- ── Actions ── -->
+  <div style="display:flex;gap:10px;justify-content:flex-end">
+    <a href="/produits" class="btn btn-s">Annuler</a>
+    <button type="submit" class="btn btn-p btn-lg">
+      {% if produit %}💾 Enregistrer les modifications{% else %}✓ Créer le produit{% endif %}
+    </button>
+  </div>
+</form>
+</div>
+
+<script>
+// ── Prix TTC ──
+function updateTTC(){
+  const ht=parseFloat(document.getElementById('px_ht').value)||0;
+  const tva=parseFloat(document.getElementById('px_tva').value)||0;
+  document.getElementById('ttc_display').textContent=(ht*(1+tva/100)).toLocaleString('fr-FR',{maximumFractionDigits:0})+' {{ devise }}';
+}
+document.getElementById('px_ht').addEventListener('input',updateTTC);
+document.getElementById('px_tva').addEventListener('input',updateTTC);
+updateTTC();
+
+// ── Preview nouvelles images ──
+let selectedFiles = [];
+function previewNewImgs(input){
+  const grid = document.getElementById('newPreviewGrid');
+  // Merge files (ne pas remplacer les existants)
+  const dt = new DataTransfer();
+  selectedFiles.forEach(f => dt.items.add(f));
+  Array.from(input.files).forEach(f => { selectedFiles.push(f); dt.items.add(f); });
+  input.files = dt.files;
+
+  grid.innerHTML = '';
+  selectedFiles.forEach((file, idx) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const wrap = document.createElement('div');
+      wrap.className = 'new-preview-item';
+      wrap.innerHTML = `<img src="${e.target.result}" alt=""><button type="button" class="new-preview-rm" onclick="removeNewImg(${idx})">×</button>`;
+      grid.appendChild(wrap);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function removeNewImg(idx){
+  selectedFiles.splice(idx, 1);
+  const dt = new DataTransfer();
+  selectedFiles.forEach(f => dt.items.add(f));
+  document.getElementById('imgInput').files = dt.files;
+  // Re-render
+  const fakeInput = {files: dt.files};
+  selectedFiles = [...selectedFiles];
+  const grid = document.getElementById('newPreviewGrid');
+  grid.innerHTML = '';
+  selectedFiles.forEach((file, i) => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const wrap = document.createElement('div');
+      wrap.className = 'new-preview-item';
+      wrap.innerHTML = `<img src="${e.target.result}" alt=""><button type="button" class="new-preview-rm" onclick="removeNewImg(${i})">×</button>`;
+      grid.appendChild(wrap);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Drag-over styling
+const dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', e=>{e.preventDefault();dz.classList.add('drag-over');});
+dz.addEventListener('dragleave', ()=>dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e=>{e.preventDefault();dz.classList.remove('drag-over');
+  const input = document.getElementById('imgInput');
+  const dt2 = new DataTransfer();
+  Array.from(e.dataTransfer.files).filter(f=>f.type.startsWith('image/')).forEach(f=>dt2.items.add(f));
+  input.files = dt2.files;
+  previewNewImgs(input);
+});
+
+// ── Supprimer image existante ──
+async function delImg(id, btn){
+  if(!confirm('Supprimer cette image ?')) return;
+  btn.disabled = true;
+  const res = await fetch(`/produits/image/${id}/supprimer`, {method:'POST'});
+  const data = await res.json();
+  if(data.ok){
+    const card = document.getElementById('imgcard-'+id);
+    card.style.transition='opacity .3s,transform .3s';
+    card.style.opacity='0';card.style.transform='scale(.8)';
+    setTimeout(()=>card.remove(), 320);
+  } else { alert('Erreur : '+data.error); btn.disabled=false; }
+}
+
+// ── Définir image principale ──
+async function setMain(id, btn){
+  btn.disabled=true;
+  const res = await fetch(`/produits/image/${id}/principale`, {method:'POST'});
+  const data = await res.json();
+  if(data.ok){
+    // Mettre à jour l'UI
+    document.querySelectorAll('.img-card').forEach(c=>{
+      c.classList.remove('is-main');
+      const badge = c.querySelector('.ic-badge-main');
+      if(badge) badge.remove();
+    });
+    const card = document.getElementById('imgcard-'+id);
+    card.classList.add('is-main');
+    const badge = document.createElement('div');
+    badge.className='ic-badge-main'; badge.textContent='⭐ Principale';
+    card.appendChild(badge);
+  }
+  btn.disabled=false;
+}
+
+// ── Drag-reorder (images existantes) ──
+(function(){
+  const gallery = document.getElementById('imgGallery');
+  if(!gallery) return;
+  let dragged = null;
+  gallery.querySelectorAll('.img-card').forEach(card=>{
+    card.setAttribute('draggable','true');
+    card.addEventListener('dragstart',e=>{dragged=card;card.style.opacity='.45';});
+    card.addEventListener('dragend',e=>{dragged.style.opacity='1';dragged=null;saveOrder();});
+    card.addEventListener('dragover',e=>{e.preventDefault();
+      const rect=card.getBoundingClientRect();
+      const after=e.clientX>rect.left+rect.width/2;
+      if(after) gallery.insertBefore(dragged,card.nextSibling);
+      else gallery.insertBefore(dragged,card);
+    });
+  });
+  function saveOrder(){
+    const ids=[...gallery.querySelectorAll('.img-card')].map(c=>c.dataset.id);
+    const pid = '{{ produit.id if produit else 0 }}';
+    fetch(`/produits/${pid}/images/reorder`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})});
+  }
+})();
+</script>
+{% endblock %}

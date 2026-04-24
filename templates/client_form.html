@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}{% if client %}Modifier{% else %}Nouveau{% endif %} client{% endblock %}
+{% block page_title %}{% if client %}Modifier le client{% else %}Nouveau client{% endif %}{% endblock %}
+{% block page_subtitle %}{% if client %}{{ client.nom }}{% else %}Créer une fiche client{% endif %}{% endblock %}
+{% block header_actions %}<a href="/clients" class="btn btn-s btn-sm">← Retour</a>{% endblock %}
+
+{% block content %}
+<div style="max-width:660px;margin:0 auto">
+<form method="post" style="display:flex;flex-direction:column;gap:16px">
+
+  <div class="card">
+    <div class="sect-t">👤 Identification</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" class="mob-stack">
+      <div class="fgroup">
+        <label class="flabel">Code client</label>
+        <input type="text" name="code" value="{{ client.code if client else '' }}" placeholder="Auto-généré" class="finput">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Type</label>
+        <select name="type_client" class="finput">
+          <option value="particulier" {% if not client or client.type_client=='particulier' %}selected{% endif %}>👤 Particulier</option>
+          <option value="entreprise" {% if client and client.type_client=='entreprise' %}selected{% endif %}>🏢 Entreprise</option>
+        </select>
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Nom <span class="req">*</span></label>
+        <input type="text" name="nom" value="{{ client.nom if client else '' }}" required class="finput" placeholder="Nom de famille / raison sociale">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Prénom</label>
+        <input type="text" name="prenom" value="{{ client.prenom if client else '' }}" class="finput" placeholder="Prénom (optionnel)">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sect-t">📞 Contact</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" class="mob-stack">
+      <div class="fgroup">
+        <label class="flabel">Email</label>
+        <div class="fg-ico">
+          <svg class="ico" width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          <input type="email" name="email" value="{{ client.email if client else '' }}" class="finput" placeholder="email@exemple.com">
+        </div>
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Téléphone</label>
+        <div class="fg-ico">
+          <svg class="ico" width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+          <input type="text" name="telephone" value="{{ client.telephone if client else '' }}" class="finput" placeholder="+221 77 000 00 00">
+        </div>
+      </div>
+      <div class="fgroup" style="grid-column:1/-1">
+        <label class="flabel">Adresse</label>
+        <input type="text" name="adresse" value="{{ client.adresse if client else '' }}" class="finput" placeholder="Rue, quartier…">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Ville</label>
+        <input type="text" name="ville" value="{{ client.ville if client else '' }}" class="finput" placeholder="Dakar">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Pays</label>
+        <input type="text" name="pays" value="{{ client.pays if client else 'Sénégal' }}" class="finput">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="sect-t">🏷️ Conditions commerciales</div>
+    <div style="max-width:220px">
+      <div class="fgroup">
+        <label class="flabel">Remise habituelle (%)</label>
+        <input type="number" name="remise" value="{{ client.remise if client else 0 }}" min="0" max="100" step="0.5" class="finput">
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;justify-content:flex-end">
+    <a href="/clients" class="btn btn-s">Annuler</a>
+    <button type="submit" class="btn btn-p">{% if client %}💾 Enregistrer{% else %}✓ Créer le client{% endif %}</button>
+  </div>
+</form>
+</div>
+{% endblock %}

@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% block title %}Commandes{% endblock %}
+{% block page_title %}Commandes{% endblock %}
+{% block page_subtitle %}Suivi des bons de commande{% endblock %}
+{% block header_actions %}
+<a href="/commandes/nouvelle" class="btn btn-p btn-sm">
+  <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+  Nouvelle commande
+</a>
+{% endblock %}
+
+{% block content %}
+{% set devise = params.get('devise','FCFA') %}
+
+<!-- Filtres statut + recherche -->
+<div class="card" style="margin-bottom:14px;padding:14px 18px">
+  <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+    <div style="flex:1;min-width:180px">
+      <label class="flabel">Rechercher</label>
+      <form id="searchForm" style="display:flex;gap:6px">
+        <div class="fg-ico" style="flex:1">
+          <svg class="ico" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="m21 21-4.35-4.35"/></svg>
+          <input type="text" name="q" value="{{ q }}" placeholder="Numéro, client…" class="finput"
+                 onchange="this.form.submit()">
+        </div>
+        {% if statut %}<input type="hidden" name="statut" value="{{ statut }}">{% endif %}
+        {% if q %}<a href="/commandes{% if statut %}?statut={{ statut }}{% endif %}" class="btn btn-s btn-sm">✕</a>{% endif %}
+      </form>
+    </div>
+  </div>
+
+  <!-- Filtres statut -->
+  <div class="pills" style="margin-bottom:0;margin-top:12px">
+    <a href="/commandes{% if q %}?q={{ q }}{% endif %}" class="pill"
+       style="{% if not statut %}background:var(--p);color:#fff;border-color:var(--p){% else %}background:#f1f5f9;color:#475569;border-color:#e2e8f0{% endif %}">
+      Toutes
+    </a>
+    {% for sv,sl,cls in [('en_attente','⏳ En attente','bg-y'),('confirmee','✓ Confirmée','bg-b'),('expediee','🚚 Expédiée','bg-v'),('livree','✅ Livrée','bg-g'),('annulee','✗ Annulée','bg-r')] %}
+    <a href="/commandes?statut={{ sv }}{% if q %}&q={{ q }}{% endif %}"
+       class="pill badge {{ cls }}"
+       style="{% if statut==sv %}outline:2px solid currentColor;outline-offset:2px{% endif %}">{{ sl }}</a>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Tableau -->
+<div class="card" style="padding:0;overflow:hidden">
+  <div style="padding:13px 18px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between">
+    <span style="font-size:13px;font-weight:700;color:#374151">
+      {{ commandes_data|length }} commande(s)
+      {% if statut or q %}<span class="sub-t">— filtrée(s)</span>{% endif %}
+    </span>
+    {% if commandes_data %}
+    <span class="sub-t">
+      Total TTC : <strong class="tp">
+        {{ commandes_data | sum(attribute='ttc') | fmt_currency(devise) }}
+      </strong>
+    </span>
+    {% endif %}
+  </div>
+
+  {% if commandes_data %}
+  <div class="twrap">
+    <table class="dtable">
+      <thead><tr>
+        <th>Numéro</th>
+        <th>Client</th>
+        <th class="mob-hide">Date</th>
+        <th class="mob-hide">Livraison</th>
+        <th>Statut</th>
+        <th class="tr">Total TTC</th>
+        <th></th>
+      </tr></thead>
+      <tbody>
+      {% for d in commandes_data %}
+      {% set c = d.cmd %}
+      <tr>
+        <td class="mono tp" style="font-weight:750;font-size:12px">{{ c.numero }}</td>
+        <td style="font-weight:650;color:#1e293b">{{ c.client_nom }}</td>
+        <td class="mob-hide sub-t">{{ c.date_commande | fmt_date }}</td>
+        <td class="mob-hide">
+          {% if c.date_livraison %}
+          <span style="font-size:12px;color:#64748b">{{ c.date_livraison | fmt_date }}</span>
+          {% else %}<span style="color:#e2e8f0">—</span>{% endif %}
+        </td>
+        <td>{{ c.statut | statut_badge | safe }}</td>
+        <td class="tr" style="font-weight:750;color:#1e293b">{{ d.ttc | fmt_currency(devise) }}</td>
+        <td>
+          <div class="row-actions">
+            <a href="/commandes/{{ c.id }}" class="btn btn-s btn-sm btn-icon" title="Voir le détail">
+              <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+            </a>
+            {% if c.statut not in ('livree','annulee') %}
+            <a href="/commandes/{{ c.id }}/modifier" class="btn btn-s btn-sm btn-icon" title="Modifier">✏️</a>
+            {% endif %}
+            <form method="post" action="/commandes/{{ c.id }}/dupliquer" style="display:inline" title="Dupliquer">
+              <button class="btn btn-s btn-sm btn-icon">⧉</button>
+            </form>
+            <form method="post" action="/commandes/{{ c.id }}/supprimer"
+                  onsubmit="return confirm('Supprimer la commande {{ c.numero }} ?')">
+              <button class="btn btn-del btn-sm btn-icon" title="Supprimer">🗑</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-st">
+    <div class="empty-st-icon">🛒</div>
+    <div class="empty-st-t">Aucune commande trouvée</div>
+    <div class="empty-st-s">
+      {% if statut or q %}Modifiez vos filtres ou{% else %}Commencez par{% endif %}
+      créer une nouvelle commande
+    </div>
+    <a href="/commandes/nouvelle" class="btn btn-p">+ Nouvelle commande</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

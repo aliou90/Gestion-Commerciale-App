@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% block title %}Produits{% endblock %}
+{% block page_title %}Catalogue produits{% endblock %}
+{% block page_subtitle %}Stock, prix et catégories{% endblock %}
+{% block header_actions %}
+<a href="/produits/nouveau" class="btn btn-p btn-sm">
+  <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+  Nouveau
+</a>
+{% endblock %}
+
+{% block content %}
+{% set devise = params.get('devise','FCFA') %}
+
+<div class="card" style="margin-bottom:14px">
+  <form style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+    <div style="flex:1;min-width:180px">
+      <label class="flabel">Rechercher</label>
+      <div class="fg-ico">
+        <svg class="ico" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="m21 21-4.35-4.35"/></svg>
+        <input type="text" name="q" value="{{ q }}" placeholder="Nom, référence…" class="finput">
+      </div>
+    </div>
+    <div style="min-width:150px">
+      <label class="flabel">Catégorie</label>
+      <select name="cat" class="finput">
+        <option value="">Toutes</option>
+        {% for c in categories %}<option value="{{ c.id }}" {% if cat==c.id|string %}selected{% endif %}>{{ c.nom }}</option>{% endfor %}
+      </select>
+    </div>
+    <div style="display:flex;gap:6px">
+      <button type="submit" class="btn btn-p btn-sm">Filtrer</button>
+      {% if q or cat %}<a href="/produits" class="btn btn-s btn-sm">✕</a>{% endif %}
+    </div>
+  </form>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <div style="padding:14px 18px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between">
+    <span style="font-size:13px;font-weight:700;color:#374151">{{ produits_data|length }} produit(s)</span>
+  </div>
+  {% if produits_data %}
+  <div class="twrap">
+    <table class="dtable">
+      <thead><tr>
+        <th style="width:52px"></th>
+        <th>Référence</th>
+        <th>Produit</th>
+        <th class="mob-hide">Catégorie</th>
+        <th class="tr">Prix HT</th>
+        <th class="tr mob-hide">Prix TTC</th>
+        <th class="tc">Stock</th>
+        <th></th>
+      </tr></thead>
+      <tbody>
+      {% for d in produits_data %}
+      {% set p = d.p %}
+      {% set img = d.img %}
+      <tr>
+        <td style="padding:8px 10px 8px 15px">
+          {% if img %}
+          <img src="/uploads/thumbs/{{ img.thumb_filename }}" alt="{{ p.nom }}"
+               class="prod-thumb" onclick="openLB(['/uploads/produits/{{ img.filename }}'],0)" style="cursor:zoom-in">
+          {% else %}
+          <div class="prod-no-img" title="Aucune image">📦</div>
+          {% endif %}
+        </td>
+        <td class="mono tp" style="font-size:11.5px;font-weight:600">{{ p.reference }}</td>
+        <td>
+          <div style="font-weight:650;color:#1e293b">{{ p.nom }}</div>
+          {% if p.description %}<div class="sub-t" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ p.description }}</div>{% endif %}
+        </td>
+        <td class="mob-hide">
+          {% if p.cat_nom %}<span class="badge bg-p">{{ p.cat_nom }}</span>{% else %}<span style="color:#cbd5e1">—</span>{% endif %}
+        </td>
+        <td class="tr" style="font-weight:650">{{ p.prix_vente | fmt_currency(devise) }}</td>
+        <td class="tr mob-hide" style="font-weight:700;color:#1e293b">{{ (p.prix_vente*(1+p.tva/100)) | fmt_currency(devise) }}</td>
+        <td class="tc">
+          {% if p.stock <= p.stock_min %}
+          <span class="badge bg-r">⚠ {{ p.stock }}</span>
+          {% elif p.stock <= p.stock_min*2 %}
+          <span class="badge bg-y">{{ p.stock }}</span>
+          {% else %}
+          <span class="badge bg-g">{{ p.stock }}</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="row-actions">
+            <a href="/produits/{{ p.id }}/modifier" class="btn btn-s btn-sm btn-icon" title="Modifier">✏️</a>
+            <form method="post" action="/produits/{{ p.id }}/supprimer" onsubmit="return confirm('Supprimer ce produit ?')">
+              <button class="btn btn-del btn-sm btn-icon" title="Supprimer">🗑</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-st">
+    <div class="empty-st-icon">📦</div>
+    <div class="empty-st-t">Aucun produit trouvé</div>
+    <div class="empty-st-s">Ajoutez votre premier article au catalogue</div>
+    <a href="/produits/nouveau" class="btn btn-p">+ Nouveau produit</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

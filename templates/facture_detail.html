@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+{% block title %}Facture {{ facture.numero }}{% endblock %}
+{% block page_title %}{{ facture.numero }}{% endblock %}
+{% block page_subtitle %}Aperçu et impression{% endblock %}
+{% block header_actions %}
+<a href="/factures" class="btn btn-s btn-sm">← Retour</a>
+<a href="/factures/{{ facture.id }}/pdf" target="_blank" class="btn btn-p btn-sm">
+  <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+  PDF
+</a>
+{% if facture.statut == 'non_payee' %}
+<form method="post" action="/factures/{{ facture.id }}/payer" style="display:inline">
+  <button class="btn btn-ok btn-sm">✅ Marquer payée</button>
+</form>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+{% set devise = params.get('devise','FCFA') %}
+
+<div style="display:grid;grid-template-columns:1fr 270px;gap:16px;align-items:start" class="mob-stack">
+
+  <!-- Aperçu facture -->
+  <div style="background:#fff;border-radius:var(--r);border:1px solid rgba(0,0,0,.07);overflow:hidden;box-shadow:var(--sh)">
+
+    <!-- En-tête coloré — TOUJOURS blanc -->
+    <div style="background:var(--p);padding:26px 24px 22px;color:#fff">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div>
+          <div style="width:46px;height:46px;border-radius:10px;background:rgba(255,255,255,.22);border:1.5px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;margin-bottom:10px">
+            {% if logo_url %}<img src="{{ logo_url }}" alt="Logo" style="width:100%;height:100%;object-fit:contain;padding:4px;">{% else %}{{ params.get('logo_text','MB') }}{% endif %}
+          </div>
+          <div style="font-size:18px;font-weight:800;margin-bottom:3px">{{ params.get('boutique_nom','Ma Boutique') }}</div>
+          <div style="font-size:12px;opacity:.75;line-height:1.6">
+            {{ params.get('boutique_adresse','') }}<br>
+            {{ params.get('boutique_ville','') }}{% if params.get('boutique_pays') %} — {{ params.get('boutique_pays','') }}{% endif %}<br>
+            Tél : {{ params.get('boutique_telephone','') }}
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:26px;font-weight:900;letter-spacing:1px;margin-bottom:4px">FACTURE</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;opacity:.9;margin-bottom:10px">{{ facture.numero }}</div>
+          <div style="font-size:12px;opacity:.80;line-height:1.8">
+            Date : <strong style="color:#fff">{{ facture.date_facture | fmt_date }}</strong><br>
+            Échéance : <strong style="color:#fff">{{ facture.date_echeance | fmt_date or '—' }}</strong>
+          </div>
+          <div style="margin-top:8px">{{ facture.statut | statut_badge | safe }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Client + légal -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:16px 22px;background:#f8fafc;border-bottom:1px solid #f1f5f9;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-size:10px;font-weight:750;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:5px">Facturé à</div>
+        <div style="font-size:14px;font-weight:750;color:#1e293b;margin-bottom:2px">{{ facture.client_nom }}</div>
+        {% if facture.client_adresse %}<div style="font-size:12px;color:#64748b">{{ facture.client_adresse }}</div>{% endif %}
+        {% if facture.client_ville %}<div style="font-size:12px;color:#64748b">{{ facture.client_ville }}{% if facture.client_pays %} — {{ facture.client_pays }}{% endif %}</div>{% endif %}
+        {% if facture.client_email %}<div style="font-size:12px;color:#64748b">✉ {{ facture.client_email }}</div>{% endif %}
+      </div>
+      <div style="text-align:right;font-size:11.5px;color:#94a3b8;line-height:1.8">
+        <div>Code : <span style="font-family:'JetBrains Mono',monospace;font-weight:600;color:#475569">{{ facture.client_code }}</span></div>
+        <div>{{ params.get('boutique_ninea','') }}</div>
+        <div>{{ params.get('boutique_rccm','') }}</div>
+      </div>
+    </div>
+
+    <!-- Lignes -->
+    <div class="twrap">
+      <table class="dtable">
+        <thead><tr>
+          <th>#</th><th>Désignation</th>
+          <th class="tc">Qté</th>
+          <th class="tr">P.U. HT</th>
+          <th class="tc mob-hide">Rem.</th>
+          <th class="tc mob-hide">TVA</th>
+          <th class="tr">Total HT</th>
+        </tr></thead>
+        <tbody>
+        {% for l in totaux.lignes %}
+        {% set ht_l = l.quantite * l.prix_unitaire * (1 - l.remise/100) %}
+        <tr>
+          <td class="sub-t">{{ loop.index }}</td>
+          <td style="font-weight:650;color:#1e293b">{{ l.produit_nom }}</td>
+          <td class="tc" style="font-weight:600">{{ l.quantite }}</td>
+          <td class="tr sub-t">{{ l.prix_unitaire | fmt_currency(devise) }}</td>
+          <td class="tc mob-hide">{% if l.remise>0 %}<span class="badge bg-g">{{ l.remise }}%</span>{% else %}—{% endif %}</td>
+          <td class="tc mob-hide sub-t">{{ l.tva }}%</td>
+          <td class="tr" style="font-weight:750">{{ ht_l | fmt_currency(devise) }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Totaux -->
+    <div style="padding:16px 22px 20px;background:#f8fafc;border-top:1px solid #f1f5f9">
+      <div style="margin-left:auto;max-width:280px">
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:#64748b;margin-bottom:6px">
+          <span>Total HT</span><span style="font-weight:650;color:#374151">{{ totaux.ht | fmt_currency(devise) }}</span>
+        </div>
+        {% if totaux.remise_globale > 0 %}
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:#10b981;margin-bottom:6px">
+          <span>Remise ({{ totaux.remise_globale }}%)</span>
+          <span style="font-weight:650">-{{ (totaux.ht*totaux.remise_globale/100) | fmt_currency(devise) }}</span>
+        </div>
+        {% endif %}
+        <div style="display:flex;justify-content:space-between;font-size:13px;color:#64748b;margin-bottom:10px">
+          <span>TVA</span><span style="font-weight:650;color:#374151">{{ totaux.tva | fmt_currency(devise) }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:800;padding-top:10px;border-top:2px solid var(--p)">
+          <span>TOTAL TTC</span>
+          <span style="color:var(--p)">{{ totaux.ttc | fmt_currency(devise) }}</span>
+        </div>
+      </div>
+    </div>
+
+    {% if facture.notes %}
+    <div style="padding:0 22px 16px;font-size:12px;color:#64748b"><strong>Notes :</strong> {{ facture.notes }}</div>
+    {% endif %}
+
+    <!-- Pied de page -->
+    <div style="padding:12px 22px;border-top:1px solid #f1f5f9;text-align:center;font-size:10.5px;color:#94a3b8">
+      {{ params.get('boutique_nom','') }} | {{ params.get('boutique_adresse','') }} |
+      Tél : {{ params.get('boutique_telephone','') }} |
+      {{ params.get('boutique_ninea','') }} | {{ params.get('boutique_rccm','') }}
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <div class="card">
+      <div class="sect-t">⚡ Actions</div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <a href="/factures/{{ facture.id }}/pdf" target="_blank" class="btn btn-p btn-blk">📄 Télécharger PDF</a>
+        <button onclick="window.print()" class="btn btn-s btn-blk">🖨 Imprimer</button>
+        {% if facture.statut=='non_payee' %}
+        <form method="post" action="/factures/{{ facture.id }}/payer">
+          <button class="btn btn-ok btn-blk" style="width:100%">✅ Marquer comme payée</button>
+        </form>
+        {% endif %}
+        {% if facture.commande_id %}
+        <a href="/commandes/{{ facture.commande_id }}" class="btn btn-s btn-blk">🛒 Voir commande</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="sect-t">📊 Résumé</div>
+      <dl style="display:flex;flex-direction:column;gap:8px;font-size:13px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <dt style="color:#64748b">Statut</dt><dd>{{ facture.statut | statut_badge | safe }}</dd>
+        </div>
+        <div style="display:flex;justify-content:space-between">
+          <dt style="color:#64748b">Date</dt><dd>{{ facture.date_facture | fmt_date }}</dd>
+        </div>
+        <div style="display:flex;justify-content:space-between">
+          <dt style="color:#64748b">Échéance</dt>
+          <dd style="{% if facture.statut=='non_payee' %}color:#dc2626;font-weight:700{% endif %}">{{ facture.date_echeance | fmt_date or '—' }}</dd>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-weight:800;font-size:14px;border-top:1px solid #f1f5f9;padding-top:8px;margin-top:2px">
+          <dt>TTC</dt><dd style="color:var(--p)">{{ totaux.ttc | fmt_currency(devise) }}</dd>
+        </div>
+      </dl>
+    </div>
+  </div>
+</div>
+{% endblock %}

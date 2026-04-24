@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block title %}Factures{% endblock %}
+{% block page_title %}Factures{% endblock %}
+{% block page_subtitle %}Gestion de la facturation{% endblock %}
+
+{% block content %}
+{% set devise = params.get('devise','FCFA') %}
+
+<div class="pills">
+  <a href="/factures" class="pill" style="{% if not statut %}background:var(--p);color:#fff;border-color:var(--p){% else %}background:#f1f5f9;color:#475569;border-color:#e2e8f0{% endif %}">Toutes</a>
+  <a href="/factures?statut=non_payee"  class="pill badge bg-r" style="{% if statut=='non_payee' %}outline:2px solid #dc2626;outline-offset:1px{% endif %}">⚠ Non payées</a>
+  <a href="/factures?statut=payee"      class="pill badge bg-g" style="{% if statut=='payee' %}outline:2px solid #16a34a;outline-offset:1px{% endif %}">✅ Payées</a>
+  <a href="/factures?statut=partiellement_payee" class="pill badge bg-o" style="{% if statut=='partiellement_payee' %}outline:2px solid #d97706;outline-offset:1px{% endif %}">◑ Partielles</a>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <div style="padding:14px 18px;border-bottom:1px solid #f1f5f9;font-size:13px;font-weight:700;color:#374151">
+    {{ factures_data|length }} facture(s)
+  </div>
+  {% if factures_data %}
+  <div class="twrap">
+    <table class="dtable">
+      <thead><tr>
+        <th>Numéro</th><th>Client</th>
+        <th class="mob-hide">Date</th>
+        <th class="mob-hide">Échéance</th>
+        <th>Statut</th>
+        <th class="tr">Montant TTC</th>
+        <th></th>
+      </tr></thead>
+      <tbody>
+      {% for d in factures_data %}
+      {% set f = d.fac %}
+      <tr>
+        <td class="mono tp" style="font-weight:700;font-size:11.5px">{{ f.numero }}</td>
+        <td style="font-weight:650;color:#1e293b">{{ f.client_nom }}</td>
+        <td class="mob-hide sub-t">{{ f.date_facture | fmt_date }}</td>
+        <td class="mob-hide">
+          <span style="font-size:12px;{% if f.statut=='non_payee' and f.date_echeance and f.date_echeance < now_date %}color:#dc2626;font-weight:700{% else %}color:#94a3b8{% endif %}">
+            {{ f.date_echeance | fmt_date or '—' }}
+          </span>
+        </td>
+        <td>{{ f.statut | statut_badge | safe }}</td>
+        <td class="tr" style="font-weight:750;color:#1e293b">{{ d.ttc | fmt_currency(devise) }}</td>
+        <td>
+          <div class="row-actions">
+            <a href="/factures/{{ f.id }}" class="btn btn-s btn-sm btn-icon" title="Voir">
+              <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+            </a>
+            <a href="/factures/{{ f.id }}/pdf" target="_blank" class="btn btn-s btn-sm btn-icon" title="PDF">📄</a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-st">
+    <div class="empty-st-icon">🧾</div>
+    <div class="empty-st-t">Aucune facture</div>
+    <div class="empty-st-s">Les factures sont générées depuis les commandes livrées</div>
+    <a href="/commandes" class="btn btn-s">Voir les commandes</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

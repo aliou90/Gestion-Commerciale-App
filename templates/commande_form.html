@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+{% block title %}{% if mode=='edit' %}Modifier{% else %}Nouvelle{% endif %} commande{% endblock %}
+{% block page_title %}{% if mode=='edit' %}Modifier la commande{% else %}Nouvelle commande{% endif %}{% endblock %}
+{% block page_subtitle %}
+  {% if mode=='edit' %}{{ commande.numero }} — {{ commande.client_nom }}{% else %}Créer un bon de commande{% endif %}
+{% endblock %}
+{% block header_actions %}
+  {% if mode=='edit' %}
+    <a href="/commandes/{{ commande.id }}" class="btn btn-s btn-sm">← Retour</a>
+  {% else %}
+    <a href="/commandes" class="btn btn-s btn-sm">← Retour</a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+{% set devise = params.get('devise','FCFA') %}
+
+<form method="post" id="cmdForm">
+<div style="display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start" class="mob-stack">
+
+  <!-- ── Panneau gauche ── -->
+  <div style="display:flex;flex-direction:column;gap:14px">
+
+    <div class="card">
+      <div class="sect-t">📋 Entête commande</div>
+      <div class="fgroup">
+        <label class="flabel">Client <span class="req">*</span></label>
+        <select name="client_id" required class="finput">
+          <option value="">— Choisir un client —</option>
+          {% for c in clients %}
+          <option value="{{ c.id }}" {% if commande and commande.client_id==c.id %}selected{% endif %}>
+            {{ c.nom }}{% if c.prenom %} {{ c.prenom }}{% endif %} ({{ c.code }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Date commande</label>
+        <input type="date" name="date_commande" id="d_cmd" class="finput"
+               value="{{ commande.date_commande[:10] if commande and commande.date_commande else '' }}">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Date livraison prévue</label>
+        <input type="date" name="date_livraison" class="finput"
+               value="{{ commande.date_livraison[:10] if commande and commande.date_livraison else '' }}">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Statut</label>
+        <select name="statut" class="finput">
+          {% for sv,sl in [('en_attente','⏳ En attente'),('confirmee','✓ Confirmée'),('expediee','🚚 Expédiée'),('livree','✅ Livrée'),('annulee','✗ Annulée')] %}
+          <option value="{{ sv }}" {% if commande and commande.statut==sv %}selected{% elif not commande and sv=='en_attente' %}selected{% endif %}>{{ sl }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Remise globale (%)</label>
+        <input type="number" name="remise_globale" id="rem_glob"
+               value="{{ commande.remise_globale if commande else 0 }}"
+               min="0" max="100" step="0.5" class="finput">
+      </div>
+      <div class="fgroup" style="margin-bottom:0">
+        <label class="flabel">Notes</label>
+        <textarea name="notes" class="finput" placeholder="Remarques, instructions…">{{ commande.notes if commande and commande.notes else '' }}</textarea>
+      </div>
+    </div>
+
+    <!-- Récapitulatif -->
+    <div class="sumbox">
+      <div style="font-size:13px;font-weight:750;margin-bottom:12px">Récapitulatif</div>
+      <div class="sr"><span>Sous-total HT</span><span class="sv" id="s_ht">—</span></div>
+      <div class="sr"><span>Remise</span><span class="sv" id="s_rem">—</span></div>
+      <div class="sr"><span>TVA</span><span class="sv" id="s_tva">—</span></div>
+      <div class="st"><span>Total TTC</span><span id="s_ttc">—</span></div>
+    </div>
+
+    <button type="submit" class="btn btn-ok btn-lg" style="justify-content:center">
+      {% if mode=='edit' %}💾 Enregistrer les modifications{% else %}✓ Créer la commande{% endif %}
+    </button>
+  </div>
+
+  <!-- ── Panneau droit : lignes ── -->
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="padding:13px 18px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:14px;font-weight:700;color:#1e293b">Articles</span>
+      <button type="button" onclick="addLigne()" class="btn btn-p btn-sm">
+        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" d="M12 4v16m8-8H4"/></svg>
+        Ajouter une ligne
+      </button>
+    </div>
+
+    <div class="twrap">
+      <table class="dtable" style="min-width:600px">
+        <thead><tr>
+          <th style="width:44px"></th>
+          <th style="min-width:185px">Produit</th>
+          <th class="tc" style="width:72px">Qté</th>
+          <th class="tr" style="width:130px">P.U. HT ({{ devise }})</th>
+          <th class="tc" style="width:68px">Rem%</th>
+          <th class="tc mob-hide" style="width:62px">TVA%</th>
+          <th class="tr" style="width:115px">Total HT</th>
+          <th style="width:34px"></th>
+        </tr></thead>
+        <tbody id="lbody">
+          {% for l in lignes %}
+          <tr id="lr{{ loop.index0 }}" style="border-bottom:1px solid #f1f5f9">
+            <td style="padding:6px 4px 6px 12px">
+              <div id="thumb{{ loop.index0 }}" class="prod-no-img" style="width:32px;height:32px;font-size:14px;border-radius:6px">📦</div>
+            </td>
+            <td style="padding:6px 8px">
+              <select name="produit_id[]" class="finput" style="font-size:12.5px;padding:6px 32px 6px 8px"
+                      onchange="onProd(this,{{ loop.index0 }})" required>
+                <option value="">— Produit —</option>
+                {% for p in produits %}
+                <option value="{{ p.id }}" data-prix="{{ p.prix_vente }}" data-tva="{{ p.tva }}" data-thumb="{{ p.thumb or '' }}"
+                  {% if p.id == l.produit_id %}selected{% endif %}>{{ p.nom }}</option>
+                {% endfor %}
+              </select>
+              <input type="hidden" name="tva_ligne[]" id="tv{{ loop.index0 }}" value="{{ l.tva }}">
+            </td>
+            <td style="padding:6px 3px">
+              <input type="number" name="quantite[]" id="qt{{ loop.index0 }}"
+                     value="{{ l.quantite }}" min="1" class="finput"
+                     style="font-size:12.5px;padding:6px 5px;text-align:center;width:62px" onchange="calc()">
+            </td>
+            <td style="padding:6px 3px">
+              <input type="number" name="prix_unitaire[]" id="pu{{ loop.index0 }}"
+                     value="{{ l.prix_unitaire }}" min="0" step="1" class="finput"
+                     style="font-size:12.5px;padding:6px 8px;width:122px" onchange="calc()">
+            </td>
+            <td style="padding:6px 3px">
+              <input type="number" name="remise_ligne[]" id="re{{ loop.index0 }}"
+                     value="{{ l.remise }}" min="0" max="100" step="0.5" class="finput"
+                     style="font-size:12.5px;padding:6px 5px;text-align:center;width:62px" onchange="calc()">
+            </td>
+            <td style="padding:6px 3px" class="mob-hide">
+              <input type="number" id="tvv{{ loop.index0 }}" value="{{ l.tva }}" min="0" max="100" step="0.5" class="finput"
+                     style="font-size:12.5px;padding:6px 5px;text-align:center;width:56px"
+                     onchange="syncTVA({{ loop.index0 }});calc()">
+            </td>
+            <td id="tot{{ loop.index0 }}" style="padding:6px 10px;text-align:right;font-size:13px;font-weight:700;color:#1e293b">
+              {{ (l.quantite * l.prix_unitaire * (1 - l.remise/100)) | fmt_currency(devise) }}
+            </td>
+            <td style="padding:6px 6px;text-align:center">
+              <button type="button" onclick="rmLigne({{ loop.index0 }})"
+                      style="width:26px;height:26px;border-radius:6px;border:none;background:#fee2e2;color:#dc2626;cursor:pointer;font-size:16px;line-height:1">×</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div style="padding:10px 18px;background:#f8fafc;border-top:1px solid #f1f5f9;font-size:12px;color:#94a3b8">
+      Sélectionnez un produit pour remplir automatiquement le prix et la TVA.
+    </div>
+  </div>
+</div>
+</form>
+
+<script>
+const PRODS = {{ produits | tojson }};
+const DEV   = '{{ devise }}';
+let idx = {{ lignes | length }};
+
+function fmt(n){return Math.round(n).toLocaleString('fr-FR')+'\u202f'+DEV;}
+function syncTVA(i){const v=document.getElementById('tvv'+i);if(v)document.getElementById('tv'+i).value=v.value;}
+
+function setThumb(i, thumbUrl){
+  const el = document.getElementById('thumb'+i);
+  if(!el) return;
+  if(thumbUrl){
+    el.outerHTML = `<img id="thumb${i}" src="${thumbUrl}" style="width:32px;height:32px;border-radius:6px;object-fit:cover;border:1.5px solid #e2e8f0;flex-shrink:0" alt="">`;
+  } else {
+    if(el.tagName === 'IMG'){
+      el.outerHTML = `<div id="thumb${i}" class="prod-no-img" style="width:32px;height:32px;font-size:14px;border-radius:6px">📦</div>`;
+    }
+  }
+}
+
+function addLigne(){
+  const i = idx++;
+  const opts = PRODS.map(p =>
+    `<option value="${p.id}" data-prix="${p.prix_vente}" data-tva="${p.tva}" data-thumb="${p.thumb||''}">${p.nom}</option>`
+  ).join('');
+  const tr = document.createElement('tr');
+  tr.id = 'lr'+i; tr.style.borderBottom = '1px solid #f1f5f9';
+  tr.innerHTML = `
+    <td style="padding:6px 4px 6px 12px">
+      <div id="thumb${i}" class="prod-no-img" style="width:32px;height:32px;font-size:14px;border-radius:6px">📦</div>
+    </td>
+    <td style="padding:6px 8px">
+      <select name="produit_id[]" class="finput" style="font-size:12.5px;padding:6px 32px 6px 8px" onchange="onProd(this,${i})" required>
+        <option value="">— Produit —</option>${opts}
+      </select>
+      <input type="hidden" name="tva_ligne[]" id="tv${i}" value="18">
+    </td>
+    <td style="padding:6px 3px">
+      <input type="number" name="quantite[]" id="qt${i}" value="1" min="1" class="finput"
+             style="font-size:12.5px;padding:6px 5px;text-align:center;width:62px" onchange="calc()">
+    </td>
+    <td style="padding:6px 3px">
+      <input type="number" name="prix_unitaire[]" id="pu${i}" value="0" min="0" step="1" class="finput"
+             style="font-size:12.5px;padding:6px 8px;width:122px" onchange="calc()">
+    </td>
+    <td style="padding:6px 3px">
+      <input type="number" name="remise_ligne[]" id="re${i}" value="0" min="0" max="100" step="0.5" class="finput"
+             style="font-size:12.5px;padding:6px 5px;text-align:center;width:62px" onchange="calc()">
+    </td>
+    <td style="padding:6px 3px" class="mob-hide">
+      <input type="number" id="tvv${i}" value="18" min="0" max="100" step="0.5" class="finput"
+             style="font-size:12.5px;padding:6px 5px;text-align:center;width:56px" onchange="syncTVA(${i});calc()">
+    </td>
+    <td id="tot${i}" style="padding:6px 10px;text-align:right;font-size:13px;font-weight:700;color:#1e293b">0</td>
+    <td style="padding:6px 6px;text-align:center">
+      <button type="button" onclick="rmLigne(${i})"
+              style="width:26px;height:26px;border-radius:6px;border:none;background:#fee2e2;color:#dc2626;cursor:pointer;font-size:16px;line-height:1">×</button>
+    </td>`;
+  document.getElementById('lbody').appendChild(tr);
+  calc();
+}
+
+function rmLigne(i){const el=document.getElementById('lr'+i);if(el)el.remove();calc();}
+
+function onProd(sel,i){
+  const o=sel.selectedOptions[0];
+  if(!o.value) return;
+  document.getElementById('pu'+i).value=parseFloat(o.dataset.prix||0).toFixed(0);
+  document.getElementById('tv'+i).value=o.dataset.tva||18;
+  const tvv=document.getElementById('tvv'+i);if(tvv)tvv.value=o.dataset.tva||18;
+  setThumb(i, o.dataset.thumb||'');
+  calc();
+}
+
+function calc(){
+  let ht=0,tva=0;
+  document.querySelectorAll('[id^="pu"]').forEach(el=>{
+    const i=el.id.slice(2);
+    const p=parseFloat(el.value)||0,q=parseFloat(document.getElementById('qt'+i)?.value)||0;
+    const r=parseFloat(document.getElementById('re'+i)?.value)||0,tv=parseFloat(document.getElementById('tv'+i)?.value)||18;
+    const h=q*p*(1-r/100);tva+=h*tv/100;ht+=h;
+    const td=document.getElementById('tot'+i);if(td)td.textContent=fmt(h);
+  });
+  const rg=parseFloat(document.getElementById('rem_glob').value)||0;
+  const ra=ht*rg/100,ha=ht-ra,ta=tva*(1-rg/100);
+  document.getElementById('s_ht').textContent=fmt(ht);
+  document.getElementById('s_rem').textContent='−'+fmt(ra);
+  document.getElementById('s_tva').textContent=fmt(ta);
+  document.getElementById('s_ttc').textContent=fmt(ha+ta);
+}
+
+document.getElementById('rem_glob').addEventListener('input',calc);
+if(!document.getElementById('d_cmd').value)
+  document.getElementById('d_cmd').value=new Date().toISOString().split('T')[0];
+
+// Init thumbs for existing lignes in edit mode
+{% if mode == 'new' %}
+addLigne();
+{% else %}
+// Restore thumbs for existing rows
+document.querySelectorAll('[name="produit_id[]"]').forEach((sel,i) => {
+  const o = sel.selectedOptions[0];
+  if(o && o.dataset.thumb) setThumb(i, o.dataset.thumb);
+});
+calc();
+{% endif %}
+</script>
+{% endblock %}

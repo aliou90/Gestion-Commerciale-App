@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+{% block title %}Commande {{ commande.numero }}{% endblock %}
+{% block page_title %}{{ commande.numero }}{% endblock %}
+{% block page_subtitle %}{{ commande.client_nom }} — {{ commande.date_commande | fmt_date }}{% endblock %}
+
+{% block header_actions %}
+  <a href="/commandes" class="btn btn-s btn-sm">← Retour</a>
+  {% if commande.statut not in ('livree','annulee') %}
+    <a href="/commandes/{{ commande.id }}/modifier" class="btn btn-s btn-sm">✏️ Modifier</a>
+  {% endif %}
+  <form method="post" action="/commandes/{{ commande.id }}/dupliquer" style="display:inline">
+    <button class="btn btn-s btn-sm" title="Dupliquer cette commande">⧉ Dupliquer</button>
+  </form>
+  {% if not facture %}
+    <form method="post" action="/factures/generer/{{ commande.id }}" style="display:inline">
+      <button class="btn btn-p btn-sm">🧾 Générer facture</button>
+    </form>
+  {% else %}
+    <a href="/factures/{{ facture.id }}" class="btn btn-p btn-sm">🧾 Voir facture</a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+{% set devise = params.get('devise','FCFA') %}
+
+<div style="display:grid;grid-template-columns:300px 1fr;gap:16px;align-items:start" class="mob-stack">
+
+  <!-- ── Colonne gauche ── -->
+  <div style="display:flex;flex-direction:column;gap:14px">
+
+    <!-- Infos commande -->
+    <div class="card">
+      <div class="sect-t">📋 Informations</div>
+      <dl style="font-size:13px;display:flex;flex-direction:column;gap:9px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <dt style="color:#64748b">Numéro</dt>
+          <dd class="mono tp" style="font-weight:750">{{ commande.numero }}</dd>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <dt style="color:#64748b">Client</dt>
+          <dd style="font-weight:700;color:#1e293b">{{ commande.client_nom }}</dd>
+        </div>
+        <div style="display:flex;justify-content:space-between">
+          <dt style="color:#64748b">Date</dt><dd>{{ commande.date_commande | fmt_date }}</dd>
+        </div>
+        <div style="display:flex;justify-content:space-between">
+          <dt style="color:#64748b">Livraison</dt>
+          <dd>{{ commande.date_livraison | fmt_date or '—' }}</dd>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <dt style="color:#64748b">Statut</dt>
+          <dd>{{ commande.statut | statut_badge | safe }}</dd>
+        </div>
+        {% if commande.remise_globale > 0 %}
+        <div style="display:flex;justify-content:space-between">
+          <dt style="color:#64748b">Remise glob.</dt>
+          <dd style="color:#10b981;font-weight:700">{{ commande.remise_globale }}%</dd>
+        </div>
+        {% endif %}
+        {% if facture %}
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <dt style="color:#64748b">Facture</dt>
+          <dd><a href="/factures/{{ facture.id }}" class="tp mono" style="font-size:12px;font-weight:650;text-decoration:underline">{{ facture.numero }}</a></dd>
+        </div>
+        {% endif %}
+      </dl>
+      {% if commande.notes %}
+      <div style="margin-top:12px;padding:9px 11px;background:#f8fafc;border-radius:8px;font-size:12px;color:#64748b;border:1px solid #f1f5f9">
+        📝 {{ commande.notes }}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Contact client -->
+    <div class="card">
+      <div class="sect-t">👤 Client</div>
+      <div style="font-size:13px">
+        <div style="font-weight:750;color:#1e293b;margin-bottom:5px">{{ commande.client_nom }}</div>
+        <div class="mono sub-t" style="margin-bottom:4px">{{ commande.client_code }}</div>
+        {% if commande.client_email %}<div class="sub-t">✉ {{ commande.client_email }}</div>{% endif %}
+        {% if commande.client_tel %}<div class="sub-t">📞 {{ commande.client_tel }}</div>{% endif %}
+        {% if commande.client_adresse %}<div class="sub-t">📍 {{ commande.client_adresse }}</div>{% endif %}
+        {% if commande.client_ville %}
+        <div class="sub-t">{{ commande.client_ville }}{% if commande.client_pays %}, {{ commande.client_pays }}{% endif %}</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Changer statut -->
+    {% if commande.statut not in ('livree','annulee') %}
+    <div class="card">
+      <div class="sect-t">🔄 Changer le statut</div>
+      <form method="post" action="/commandes/{{ commande.id }}/statut" style="display:flex;flex-direction:column;gap:8px">
+        <select name="statut" class="finput">
+          {% for sv,sl in [('en_attente','⏳ En attente'),('confirmee','✓ Confirmée'),('expediee','🚚 Expédiée'),('livree','✅ Livrée'),('annulee','✗ Annulée')] %}
+          <option value="{{ sv }}" {% if commande.statut==sv %}selected{% endif %}>{{ sl }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-p btn-blk">Mettre à jour</button>
+      </form>
+    </div>
+    {% endif %}
+
+    <!-- Totaux -->
+    <div class="sumbox">
+      <div style="font-size:13px;font-weight:750;margin-bottom:12px">Totaux</div>
+      <div class="sr"><span>Sous-total HT</span><span class="sv">{{ totaux.ht | fmt_currency(devise) }}</span></div>
+      {% if totaux.remise_globale > 0 %}
+      <div class="sr"><span>Remise ({{ totaux.remise_globale }}%)</span>
+        <span class="sv">−{{ totaux.remise_montant | fmt_currency(devise) }}</span></div>
+      {% endif %}
+      <div class="sr"><span>Total HT net</span><span class="sv">{{ totaux.ht_net | fmt_currency(devise) }}</span></div>
+      <div class="sr"><span>TVA</span><span class="sv">{{ totaux.tva | fmt_currency(devise) }}</span></div>
+      <div class="st"><span>Total TTC</span><span>{{ totaux.ttc | fmt_currency(devise) }}</span></div>
+    </div>
+
+    <!-- Zone danger -->
+    <div class="card" style="border-color:#fecaca">
+      <div class="sect-t" style="color:#dc2626;border-color:#fee2e2">⚠️ Zone dangereuse</div>
+      <form method="post" action="/commandes/{{ commande.id }}/supprimer"
+            onsubmit="return confirm('Supprimer définitivement la commande {{ commande.numero }} ? Le stock sera restauré.')">
+        <button class="btn btn-del btn-blk">🗑 Supprimer la commande</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── Colonne droite : lignes ── -->
+  <div style="display:flex;flex-direction:column;gap:14px">
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:13px 18px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:14px;font-weight:700;color:#1e293b">
+          Articles —
+          <span style="font-size:12px;color:#94a3b8;font-weight:500">{{ totaux.lignes | length }} ligne(s)</span>
+        </span>
+        {% if commande.statut not in ('livree','annulee') %}
+        <a href="/commandes/{{ commande.id }}/modifier" class="btn btn-s btn-sm">
+          ✏️ Modifier les lignes
+        </a>
+        {% endif %}
+      </div>
+      <div class="twrap">
+        <table class="dtable">
+          <thead><tr>
+            <th>#</th>
+            <th>Produit</th>
+            <th class="mob-hide">Réf.</th>
+            <th class="tc">Qté</th>
+            <th class="tr">P.U. HT</th>
+            <th class="tc mob-hide">Rem.</th>
+            <th class="tc mob-hide">TVA</th>
+            <th class="tr">Total HT</th>
+            <th class="tr mob-hide">Total TTC</th>
+          </tr></thead>
+          <tbody>
+          {% for l in totaux.lignes %}
+          {% set ht_l  = l.quantite * l.prix_unitaire * (1 - l.remise/100) %}
+          {% set ttc_l = ht_l * (1 + l.tva/100) %}
+          <tr>
+            <td style="color:#94a3b8;font-size:12px">{{ loop.index }}</td>
+            <td>
+              <div style="font-weight:650;color:#1e293b">{{ l.produit_nom }}</div>
+            </td>
+            <td class="mono sub-t mob-hide" style="font-size:11px">{{ l.produit_ref }}</td>
+            <td class="tc" style="font-weight:700">{{ l.quantite }}</td>
+            <td class="tr sub-t">{{ l.prix_unitaire | fmt_currency(devise) }}</td>
+            <td class="tc mob-hide">
+              {% if l.remise > 0 %}<span class="badge bg-g">{{ l.remise }}%</span>{% else %}<span style="color:#e2e8f0">—</span>{% endif %}
+            </td>
+            <td class="tc mob-hide sub-t">{{ l.tva }}%</td>
+            <td class="tr" style="font-weight:750">{{ ht_l | fmt_currency(devise) }}</td>
+            <td class="tr mob-hide" style="font-weight:750;color:#1e293b">{{ ttc_l | fmt_currency(devise) }}</td>
+          </tr>
+          {% endfor %}
+          {% if not totaux.lignes %}
+          <tr><td colspan="9" style="text-align:center;padding:30px;color:#94a3b8">Aucune ligne</td></tr>
+          {% endif %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Récapitulatif bas de tableau -->
+      <div style="padding:14px 18px 16px;background:#f8fafc;border-top:1px solid #f1f5f9">
+        <div style="margin-left:auto;max-width:300px;font-size:13px">
+          <div style="display:flex;justify-content:space-between;color:#64748b;margin-bottom:5px">
+            <span>Sous-total HT</span><span style="font-weight:650;color:#374151">{{ totaux.ht | fmt_currency(devise) }}</span>
+          </div>
+          {% if totaux.remise_globale > 0 %}
+          <div style="display:flex;justify-content:space-between;color:#10b981;margin-bottom:5px">
+            <span>Remise ({{ totaux.remise_globale }}%)</span>
+            <span style="font-weight:650">−{{ totaux.remise_montant | fmt_currency(devise) }}</span>
+          </div>
+          {% endif %}
+          <div style="display:flex;justify-content:space-between;color:#64748b;margin-bottom:10px">
+            <span>TVA</span><span style="font-weight:650;color:#374151">{{ totaux.tva | fmt_currency(devise) }}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:800;padding-top:10px;border-top:2px solid var(--p)">
+            <span>TOTAL TTC</span>
+            <span style="color:var(--p)">{{ totaux.ttc | fmt_currency(devise) }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions facture -->
+    {% if not facture %}
+    <div class="card" style="border-left:3px solid var(--p)">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#1e293b">Générer une facture</div>
+          <div class="sub-t">Transforme cette commande en facture imprimable PDF</div>
+        </div>
+        <form method="post" action="/factures/generer/{{ commande.id }}">
+          <button class="btn btn-p">🧾 Générer la facture</button>
+        </form>
+      </div>
+    </div>
+    {% else %}
+    <div class="card" style="border-left:3px solid #10b981">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#1e293b">Facture associée</div>
+          <div class="sub-t">{{ facture.numero }} — {{ facture.statut | statut_badge | safe }}</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <a href="/factures/{{ facture.id }}" class="btn btn-s btn-sm">👁 Voir</a>
+          <a href="/factures/{{ facture.id }}/pdf" target="_blank" class="btn btn-p btn-sm">📄 PDF</a>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

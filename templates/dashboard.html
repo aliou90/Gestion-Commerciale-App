@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+{% block title %}Tableau de bord{% endblock %}
+{% block page_title %}Tableau de bord{% endblock %}
+{% block page_subtitle %}Vue d'ensemble de votre activité{% endblock %}
+
+{% block content %}
+{% set devise = params.get('devise','FCFA') %}
+
+<!-- KPI Grid -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px" class="grid-cols-4">
+  <div class="sc">
+    <div class="sc-icon" style="background:var(--p-soft)">📦</div>
+    <div>
+      <div class="sc-val">{{ stats.nb_produits }}</div>
+      <div class="sc-lbl">Produits actifs</div>
+      {% if stats.stock_alerte > 0 %}
+      <div class="sc-sub" style="color:#ef4444;font-weight:600">⚠ {{ stats.stock_alerte }} rupture(s)</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="sc">
+    <div class="sc-icon" style="background:#d1fae5">👥</div>
+    <div>
+      <div class="sc-val">{{ stats.nb_clients }}</div>
+      <div class="sc-lbl">Clients actifs</div>
+    </div>
+  </div>
+  <div class="sc">
+    <div class="sc-icon" style="background:#fef3c7">🛒</div>
+    <div>
+      <div class="sc-val">{{ stats.nb_commandes }}</div>
+      <div class="sc-lbl">Commandes</div>
+      {% if stats.cmd_attente > 0 %}
+      <div class="sc-sub" style="color:#d97706;font-weight:600">{{ stats.cmd_attente }} en attente</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="sc">
+    <div class="sc-icon" style="background:#ede9fe">💰</div>
+    <div>
+      <div class="sc-val" style="font-size:15px">{{ stats.ca_mois | fmt_currency(devise) }}</div>
+      <div class="sc-lbl">CA ce mois</div>
+      {% if stats.fact_impayees > 0 %}
+      <div class="sc-sub" style="color:#ef4444;font-weight:600">{{ stats.fact_impayees }} impayée(s)</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Content grid -->
+<div style="display:grid;grid-template-columns:1fr 340px;gap:16px" class="mob-stack">
+
+  <!-- Dernières commandes -->
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="card-hd" style="padding:16px 20px 14px;margin-bottom:0">
+      <div class="card-t"><div class="card-bar"></div>Dernières commandes</div>
+      <a href="/commandes" class="btn btn-s btn-sm">Voir tout →</a>
+    </div>
+    {% if recent_cmds %}
+    <div class="twrap">
+      <table class="dtable">
+        <thead><tr>
+          <th>Numéro</th><th>Client</th><th class="mob-hide">Date</th><th>Statut</th><th></th>
+        </tr></thead>
+        <tbody>
+        {% for c in recent_cmds %}
+        <tr>
+          <td class="mono tp" style="font-weight:700">{{ c.numero }}</td>
+          <td style="font-weight:600">{{ c.client_nom }}</td>
+          <td class="mob-hide sub-t">{{ c.date_commande | fmt_date }}</td>
+          <td>{{ c.statut | statut_badge | safe }}</td>
+          <td><a href="/commandes/{{ c.id }}" class="btn btn-s btn-sm btn-icon" title="Voir">
+            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+          </a></td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-st">
+      <div class="empty-st-icon">🛒</div>
+      <div class="empty-st-t">Aucune commande</div>
+      <a href="/commandes/nouvelle" class="btn btn-p btn-sm">Créer une commande</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Right panel -->
+  <div style="display:flex;flex-direction:column;gap:14px">
+
+    <!-- Top produits avec images -->
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-t"><div class="card-bar" style="background:#10b981"></div>Top produits (mois)</div>
+      </div>
+      {% if top_produits %}
+      <div style="display:flex;flex-direction:column;gap:10px">
+        {% for d in top_produits %}
+        {% set p = d.p %}
+        {% set img = d.img %}
+        <div style="display:flex;align-items:center;gap:10px">
+          <!-- Thumbnail ou emoji -->
+          {% if img %}
+          <img src="/uploads/thumbs/{{ img.thumb_filename }}" alt="{{ p.nom }}"
+               style="width:36px;height:36px;border-radius:8px;object-fit:cover;border:1.5px solid #e2e8f0;flex-shrink:0">
+          {% else %}
+          <div style="width:36px;height:36px;border-radius:8px;background:var(--p-soft);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0">📦</div>
+          {% endif %}
+          <span style="width:22px;height:22px;border-radius:50%;background:var(--p-soft);color:var(--p);font-size:11px;font-weight:750;display:flex;align-items:center;justify-content:center;flex-shrink:0">{{ loop.index }}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:650;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ p.nom }}</div>
+            <div class="sub-t">{{ p.qte }} unités</div>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:var(--p);white-space:nowrap">{{ p.ca | fmt_currency(devise) }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="text-align:center;padding:20px 0;color:#94a3b8;font-size:13px">Aucune vente ce mois</div>
+      {% endif %}
+    </div>
+
+    <!-- Quick actions -->
+    <div class="card">
+      <div class="sect-t">Actions rapides</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <a href="/produits/nouveau" class="btn btn-p btn-sm" style="justify-content:center">+ Produit</a>
+        <a href="/clients/nouveau" class="btn btn-s btn-sm" style="justify-content:center">+ Client</a>
+        <a href="/commandes/nouvelle" class="btn btn-s btn-sm" style="justify-content:center;color:var(--p)!important">+ Commande</a>
+        <a href="/statistiques" class="btn btn-s btn-sm" style="justify-content:center">📊 Stats</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
