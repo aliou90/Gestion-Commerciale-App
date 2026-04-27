@@ -18,7 +18,7 @@
 {% block content %}
 {% set devise = params.get('devise','FCFA') %}
 
-<div style="display:grid;grid-template-columns:1fr 270px;gap:16px;align-items:start" class="mob-stack">
+<div id="fac-detail-grid" style="display:grid;gap:14px">
 
   <!-- Aperçu facture -->
   <div style="background:#fff;border-radius:var(--r);border:1px solid rgba(0,0,0,.07);overflow:hidden;box-shadow:var(--sh)">
@@ -72,8 +72,8 @@
           <th>#</th><th>Désignation</th>
           <th class="tc">Qté</th>
           <th class="tr">P.U. HT</th>
-          <th class="tc mob-hide">Rem.</th>
-          <th class="tc mob-hide">TVA</th>
+          <th class="tc d-hide">Rem.</th>
+          <th class="tc d-hide">TVA</th>
           <th class="tr">Total HT</th>
         </tr></thead>
         <tbody>
@@ -84,8 +84,8 @@
           <td style="font-weight:650;color:#1e293b">{{ l.produit_nom }}</td>
           <td class="tc" style="font-weight:600">{{ l.quantite }}</td>
           <td class="tr sub-t">{{ l.prix_unitaire | fmt_currency(devise) }}</td>
-          <td class="tc mob-hide">{% if l.remise>0 %}<span class="badge bg-g">{{ l.remise }}%</span>{% else %}—{% endif %}</td>
-          <td class="tc mob-hide sub-t">{{ l.tva }}%</td>
+          <td class="tc d-hide">{% if l.remise>0 %}<span class="badge bg-g">{{ l.remise }}%</span>{% else %}—{% endif %}</td>
+          <td class="tc d-hide sub-t">{{ l.tva }}%</td>
           <td class="tr" style="font-weight:750">{{ ht_l | fmt_currency(devise) }}</td>
         </tr>
         {% endfor %}
@@ -115,6 +115,37 @@
       </div>
     </div>
 
+    {% if moyen_paiement %}
+    {% set is_bank = (moyen_paiement.type_paiement == 'bancaire') %}
+    <div style="padding:14px;background:#f8fbff;border-radius:12px;border:1.5px solid {{ moyen_paiement.couleur or '#1B73E8' }}30;margin-top:10px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:{{ moyen_paiement.couleur or '#1B73E8' }};margin-bottom:8px">
+        {% if is_bank %}🏦 Virement bancaire{% else %}📱 Paiement mobile{% endif %} — {{ moyen_paiement.nom }}
+      </div>
+      {% if is_bank %}
+        <div style="font-size:12px;color:#374151;line-height:1.8">
+          {% if moyen_paiement.banque_titulaire %}<div><span style="color:#64748b">Titulaire :</span> <strong>{{ moyen_paiement.banque_titulaire }}</strong></div>{% endif %}
+          {% if moyen_paiement.banque_nom %}<div><span style="color:#64748b">Banque :</span> {{ moyen_paiement.banque_nom }}{% if moyen_paiement.banque_agence %} — {{ moyen_paiement.banque_agence }}{% endif %}</div>{% endif %}
+          {% if moyen_paiement.banque_iban %}<div style="font-family:'JetBrains Mono',monospace;font-size:11px;background:#f1f5f9;padding:4px 8px;border-radius:5px;margin-top:4px"><span style="color:#64748b">Compte/IBAN :</span> <strong>{{ moyen_paiement.banque_iban }}</strong></div>{% endif %}
+          {% if moyen_paiement.banque_swift %}<div><span style="color:#64748b">SWIFT/BIC :</span> <strong>{{ moyen_paiement.banque_swift }}</strong></div>{% endif %}
+          {% if moyen_paiement.telephone %}<div>📞 {{ moyen_paiement.telephone }}</div>{% endif %}
+        </div>
+      {% else %}
+        <div style="display:flex;gap:12px;align-items:center">
+          {% if moyen_paiement.qr_filename %}
+          <div style="width:88px;height:88px;background:#fff;border:1.5px solid #e2e8f0;border-radius:8px;padding:3px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:zoom-in"
+               onclick="openLB(['/uploads/qr/{{ moyen_paiement.qr_filename }}'],0)">
+            <img src="/uploads/qr/{{ moyen_paiement.qr_filename }}" alt="QR" style="max-width:100%;max-height:100%;object-fit:contain">
+          </div>
+          {% endif %}
+          <div style="font-size:12px;color:#374151;line-height:1.8">
+            <div style="color:#64748b;font-size:11px">📱 Scannez pour payer</div>
+            {% if moyen_paiement.telephone %}<div style="font-size:14px;font-weight:700;color:#1e293b">📞 {{ moyen_paiement.telephone }}</div>
+            <div style="font-size:11px;color:#94a3b8">Ou envoi direct par numéro</div>{% endif %}
+          </div>
+        </div>
+      {% endif %}
+    </div>
+    {% endif %}
     {% if facture.notes %}
     <div style="padding:0 22px 16px;font-size:12px;color:#64748b"><strong>Notes :</strong> {{ facture.notes }}</div>
     {% endif %}
@@ -128,7 +159,7 @@
   </div>
 
   <!-- Actions -->
-  <div style="display:flex;flex-direction:column;gap:12px">
+  <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
     <div class="card">
       <div class="sect-t">⚡ Actions</div>
       <div style="display:flex;flex-direction:column;gap:8px">

@@ -22,8 +22,8 @@
     <table class="dtable">
       <thead><tr>
         <th>Numéro</th><th>Client</th>
-        <th class="mob-hide">Date</th>
-        <th class="mob-hide">Échéance</th>
+        <th class="d-hide">Date</th>
+        <th class="d-hide">Échéance</th>
         <th>Statut</th>
         <th class="tr">Montant TTC</th>
         <th></th>
@@ -34,8 +34,8 @@
       <tr>
         <td class="mono tp" style="font-weight:700;font-size:11.5px">{{ f.numero }}</td>
         <td style="font-weight:650;color:#1e293b">{{ f.client_nom }}</td>
-        <td class="mob-hide sub-t">{{ f.date_facture | fmt_date }}</td>
-        <td class="mob-hide">
+        <td class="d-hide sub-t">{{ f.date_facture | fmt_date }}</td>
+        <td class="d-hide">
           <span style="font-size:12px;{% if f.statut=='non_payee' and f.date_echeance and f.date_echeance < now_date %}color:#dc2626;font-weight:700{% else %}color:#94a3b8{% endif %}">
             {{ f.date_echeance | fmt_date or '—' }}
           </span>

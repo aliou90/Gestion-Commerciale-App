@@ -12,7 +12,7 @@
   <!-- ── Infos générales ── -->
   <div class="card">
     <div class="sect-t">📝 Informations générales</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px" class="mob-stack">
+    <div class="g-2">
       <div class="fgroup">
         <label class="flabel">Référence</label>
         <input type="text" name="reference" value="{{ produit.reference if produit else '' }}" placeholder="Auto-générée si vide" class="finput">
@@ -40,7 +40,7 @@
   <!-- ── Prix & Fiscalité ── -->
   <div class="card">
     <div class="sect-t">💰 Prix &amp; Fiscalité</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px" class="mob-stack">
+    <div class="g-3">
       <div class="fgroup">
         <label class="flabel">Prix achat ({{ devise }})</label>
         <input type="number" name="prix_achat" value="{{ produit.prix_achat if produit else 0 }}" min="0" step="1" class="finput">
@@ -62,7 +62,7 @@
   <!-- ── Stock ── -->
   <div class="card">
     <div class="sect-t">📊 Stock</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px" class="mob-stack">
+    <div class="g-3">
       <div class="fgroup">
         <label class="flabel">Stock actuel</label>
         <input type="number" name="stock" value="{{ produit.stock if produit else 0 }}" min="0" class="finput">

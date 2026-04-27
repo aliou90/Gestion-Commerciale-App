@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block title %}Moyens de paiement{% endblock %}
+{% block page_title %}Moyens de paiement{% endblock %}
+{% block page_subtitle %}Mobile Money et virements bancaires{% endblock %}
+{% block header_actions %}
+<a href="/paiements/nouveau" class="btn btn-p btn-sm">
+  <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+  Nouveau
+</a>
+{% endblock %}
+
+{% block content %}
+{% set mobiles = moyens | selectattr('type_paiement', 'ne', 'bancaire') | list %}
+{% set bancaires = moyens | selectattr('type_paiement', 'equalto', 'bancaire') | list %}
+
+{% if mobiles %}
+<div style="margin-bottom:8px;font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em">📱 Mobile Money</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;margin-bottom:24px">
+  {% for m in mobiles %}
+  {% include '_paiement_card.html' %}
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if bancaires %}
+<div style="margin-bottom:8px;font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.06em">🏦 Virements Bancaires</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px;margin-bottom:24px">
+  {% for m in bancaires %}
+  {% include '_paiement_card.html' %}
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if not moyens %}
+<div class="card">
+  <div class="empty-st">
+    <div class="empty-st-icon">💳</div>
+    <div class="empty-st-t">Aucun moyen de paiement</div>
+    <div class="empty-st-s">Ajoutez Wave, Orange Money, BHS… avec QR code et informations de paiement</div>
+    <a href="/paiements/nouveau" class="btn btn-p">+ Ajouter un moyen</a>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

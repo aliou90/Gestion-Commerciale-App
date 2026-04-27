@@ -34,8 +34,8 @@
   <div class="twrap">
     <table class="dtable">
       <thead><tr>
-        <th>Code</th><th>Client</th><th class="mob-hide">Contact</th>
-        <th class="mob-hide">Ville</th><th>Type</th><th class="tc mob-hide">Remise</th><th></th>
+        <th>Code</th><th>Client</th><th class="d-hide">Contact</th>
+        <th class="d-hide">Ville</th><th>Type</th><th class="tc d-hide">Remise</th><th></th>
       </tr></thead>
       <tbody>
       {% for c in clients %}
@@ -44,11 +44,11 @@
         <td>
           <div style="font-weight:650;color:#1e293b">{{ c.nom }}{% if c.prenom %} {{ c.prenom }}{% endif %}</div>
         </td>
-        <td class="mob-hide">
+        <td class="d-hide">
           {% if c.email %}<div class="sub-t">✉ {{ c.email }}</div>{% endif %}
           {% if c.telephone %}<div class="sub-t">📞 {{ c.telephone }}</div>{% endif %}
         </td>
-        <td class="mob-hide sub-t">{{ c.ville or '—' }}</td>
+        <td class="d-hide sub-t">{{ c.ville or '—' }}</td>
         <td>
           {% if c.type_client=='entreprise' %}
           <span class="badge bg-v">🏢 Entreprise</span>
@@ -56,7 +56,7 @@
           <span class="badge bg-gr">👤 Particulier</span>
           {% endif %}
         </td>
-        <td class="tc mob-hide">
+        <td class="tc d-hide">
           {% if c.remise > 0 %}<span class="badge bg-g">{{ c.remise }}%</span>{% else %}<span style="color:#e2e8f0">—</span>{% endif %}
         </td>
         <td>

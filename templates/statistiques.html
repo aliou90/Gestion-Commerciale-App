@@ -16,7 +16,7 @@
 {% set devise = params.get('devise','FCFA') %}
 
 <!-- KPI row -->
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px" class="grid-cols-4">
+<div class="g-4" style="margin-bottom:16px">
   <div class="sc"><div class="sc-icon" style="background:var(--p-soft)">💰</div>
     <div><div class="sc-val" id="kpi-ca" style="font-size:15px">—</div><div class="sc-lbl">CA Total HT</div></div>
   </div>
@@ -32,10 +32,10 @@
 </div>
 
 <!-- Charts -->
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px" class="mob-stack">
+<div id="stats-grid" style="display:grid;gap:12px;margin-bottom:12px">
 
   <!-- CA Mensuel -->
-  <div class="card" style="grid-column:1/-1">
+  <div class="card" style="grid-column:1/-1" id="ca-card">
     <div class="card-hd">
       <div class="card-t"><div class="card-bar"></div>Chiffre d'affaires mensuel HT</div>
       <span style="font-size:11px;color:#94a3b8" id="ca-yr">{{ annee }}</span>
@@ -87,7 +87,7 @@
         <th>#</th><th>Client</th>
         <th class="tr">Commandes</th>
         <th class="tr">CA HT</th>
-        <th class="mob-hide">Part</th>
+        <th class="d-hide">Part</th>
       </tr></thead>
       <tbody id="tCliBody"><tr><td colspan="5" style="text-align:center;padding:24px;color:#94a3b8">Chargement…</td></tr></tbody>
     </table>
@@ -173,7 +173,7 @@ async function loadCli(){
       <td style="font-weight:650;color:#1e293b">${n}</td>
       <td style="text-align:right;color:#64748b">${d.cmds[i]}</td>
       <td style="text-align:right;font-weight:750;color:var(--p)">${fmt(d.ca[i])}</td>
-      <td class="mob-hide" style="min-width:120px">
+      <td class="d-hide" style="min-width:120px">
         <div style="display:flex;align-items:center;gap:8px">
           <div class="pbar" style="flex:1"><div class="pbar-fill" style="width:${p}%"></div></div>
           <span style="font-size:11px;color:#94a3b8;width:36px;text-align:right">${p}%</span>

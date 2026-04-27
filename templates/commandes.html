@@ -65,8 +65,8 @@
       <thead><tr>
         <th>Numéro</th>
         <th>Client</th>
-        <th class="mob-hide">Date</th>
-        <th class="mob-hide">Livraison</th>
+        <th class="d-hide">Date</th>
+        <th class="d-hide">Livraison</th>
         <th>Statut</th>
         <th class="tr">Total TTC</th>
         <th></th>
@@ -77,8 +77,8 @@
       <tr>
         <td class="mono tp" style="font-weight:750;font-size:12px">{{ c.numero }}</td>
         <td style="font-weight:650;color:#1e293b">{{ c.client_nom }}</td>
-        <td class="mob-hide sub-t">{{ c.date_commande | fmt_date }}</td>
-        <td class="mob-hide">
+        <td class="d-hide sub-t">{{ c.date_commande | fmt_date }}</td>
+        <td class="d-hide">
           {% if c.date_livraison %}
           <span style="font-size:12px;color:#64748b">{{ c.date_livraison | fmt_date }}</span>
           {% else %}<span style="color:#e2e8f0">—</span>{% endif %}

@@ -1,0 +1,279 @@
+{% extends 'base.html' %}
+{% block title %}{% if moyen %}Modifier{% else %}Nouveau{% endif %} moyen de paiement{% endblock %}
+{% block page_title %}{% if moyen %}Modifier : {{ moyen.nom }}{% else %}Nouveau moyen de paiement{% endif %}{% endblock %}
+{% block page_subtitle %}Mobile money, virement bancaire…{% endblock %}
+{% block header_actions %}<a href="/paiements" class="btn btn-s btn-sm">← Retour</a>{% endblock %}
+
+{% block content %}
+{% set tp = moyen.type_paiement if moyen and moyen.type_paiement else 'mobile' %}
+<div style="max-width:700px;margin:0 auto">
+<form method="post" enctype="multipart/form-data" id="mpForm" style="display:flex;flex-direction:column;gap:16px">
+
+  <!-- ── Type ── -->
+  <div class="card">
+    <div class="sect-t">💳 Type de moyen de paiement</div>
+    <div class="g-2">
+
+      <label class="type-lbl" id="lbl-mobile" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border:2px solid {{ 'var(--p)' if tp=='mobile' else '#e2e8f0' }};border-radius:10px;cursor:pointer;transition:all .18s;background:{{ 'var(--p-soft)' if tp=='mobile' else '#fafbff' }}">
+        <input type="radio" name="type_paiement" value="mobile" {% if tp=='mobile' %}checked{% endif %} onchange="switchType('mobile')" style="display:none">
+        <div class="type-ico" id="ico-mobile" style="width:38px;height:38px;border-radius:9px;background:{{ 'var(--p)' if tp=='mobile' else '#e2e8f0' }};display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;transition:background .18s">📱</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#1e293b">Mobile Money</div>
+          <div class="sub-t">Wave, Orange Money…</div>
+        </div>
+      </label>
+
+      <label class="type-lbl" id="lbl-bancaire" style="display:flex;align-items:center;gap:12px;padding:14px 16px;border:2px solid {{ 'var(--p)' if tp=='bancaire' else '#e2e8f0' }};border-radius:10px;cursor:pointer;transition:all .18s;background:{{ 'var(--p-soft)' if tp=='bancaire' else '#fafbff' }}">
+        <input type="radio" name="type_paiement" value="bancaire" {% if tp=='bancaire' %}checked{% endif %} onchange="switchType('bancaire')" style="display:none">
+        <div class="type-ico" id="ico-bancaire" style="width:38px;height:38px;border-radius:9px;background:{{ 'var(--p)' if tp=='bancaire' else '#e2e8f0' }};display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;transition:background .18s">🏦</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#1e293b">Virement bancaire</div>
+          <div class="sub-t">IBAN, SWIFT, compte…</div>
+        </div>
+      </label>
+
+    </div>
+  </div>
+
+  <!-- ── Infos communes ── -->
+  <div class="card">
+    <div class="sect-t">📋 Informations générales</div>
+    <div class="g-2">
+      <div class="fgroup" style="grid-column:1/-1">
+        <label class="flabel">Nom du moyen <span class="req">*</span></label>
+        <input type="text" name="nom" value="{{ moyen.nom if moyen else '' }}" required class="finput" placeholder="Ex: Wave Sénégal, Orange Money, BHS…">
+      </div>
+      <div class="fgroup" style="grid-column:1/-1">
+        <label class="flabel">Description</label>
+        <input type="text" name="description" value="{{ moyen.description if moyen and moyen.description else '' }}" class="finput" placeholder="Courte description optionnelle">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Couleur</label>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="color" name="couleur" id="mpColor" value="{{ moyen.couleur if moyen and moyen.couleur else '#1B73E8' }}"
+                 style="width:46px;height:40px;border-radius:8px;border:1.5px solid #e2e8f0;cursor:pointer;padding:3px;flex-shrink:0">
+          <div style="display:flex;gap:5px;flex-wrap:wrap">
+            {% for c,n in [('#1B73E8','Wave'),('#FF6600','Orange'),('#CC0000','Free'),('#00B14F','MTN'),('#8b5cf6','Violet'),('#0077B5','BHS'),('#00A859','Vert'),('#0f172a','Nuit')] %}
+            <button type="button" onclick="document.getElementById('mpColor').value='{{ c }}'"
+              style="width:24px;height:24px;border-radius:6px;background:{{ c }};border:2px solid #fff;box-shadow:0 0 0 1.5px rgba(0,0,0,.15);cursor:pointer;transition:transform .12s"
+              onmouseover="this.style.transform='scale(1.18)'" onmouseout="this.style.transform=''" title="{{ n }}"></button>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Ordre d'affichage</label>
+        <input type="number" name="ordre" value="{{ moyen.ordre if moyen else 0 }}" min="0" class="finput">
+      </div>
+      {% if moyen %}
+      <div class="fgroup" style="grid-column:1/-1">
+        <label class="flabel">Statut</label>
+        <div style="display:flex;gap:10px">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:600;color:#374151">
+            <input type="radio" name="actif" value="1" {% if moyen.actif %}checked{% endif %}> ✅ Actif
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:600;color:#374151">
+            <input type="radio" name="actif" value="0" {% if not moyen.actif %}checked{% endif %}> ⏸ Inactif
+          </label>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ── Bloc Mobile ── -->
+  <div class="card" id="bloc-mobile" style="display:{{ 'none' if tp=='bancaire' else 'block' }}">
+    <div class="sect-t">📱 Mobile Money</div>
+    <div class="fgroup" style="margin-bottom:0">
+      <label class="flabel">Numéro de téléphone
+        <span style="font-weight:400;text-transform:none;color:#94a3b8">— affiché si le QR ne scanne pas</span>
+      </label>
+      <div class="fg-ico">
+        <svg class="ico" width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+        <input type="tel" name="telephone" id="inp-tel" value="{{ moyen.telephone if moyen and moyen.telephone else '' }}" class="finput" placeholder="+221 77 000 00 00">
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Bloc Bancaire ── -->
+  <div class="card" id="bloc-bancaire" style="display:{{ 'block' if tp=='bancaire' else 'none' }}">
+    <div class="sect-t">🏦 Informations bancaires</div>
+    <div style="background:#eff6ff;border-radius:8px;padding:10px 14px;font-size:12px;color:#1d4ed8;margin-bottom:14px;border:1px solid #bfdbfe">
+      💡 Ces informations seront imprimées sur la facture PDF pour permettre un virement direct.
+    </div>
+    <div class="g-2">
+      <div class="fgroup">
+        <label class="flabel">Nom de la banque</label>
+        <input type="text" name="banque_nom" value="{{ moyen.banque_nom if moyen and moyen.banque_nom else '' }}" class="finput" placeholder="BHS, CBAO, Ecobank…">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Agence / Ville</label>
+        <input type="text" name="banque_agence" value="{{ moyen.banque_agence if moyen and moyen.banque_agence else '' }}" class="finput" placeholder="Agence Plateau Dakar">
+      </div>
+      <div class="fgroup" style="grid-column:1/-1">
+        <label class="flabel">Titulaire du compte</label>
+        <input type="text" name="banque_titulaire" value="{{ moyen.banque_titulaire if moyen and moyen.banque_titulaire else '' }}" class="finput" placeholder="Nom complet du titulaire">
+      </div>
+      <div class="fgroup" style="grid-column:1/-1">
+        <label class="flabel">Numéro de compte / IBAN <span style="font-weight:400;color:#94a3b8;text-transform:none">(imprimé sur la facture)</span></label>
+        <input type="text" name="banque_iban" value="{{ moyen.banque_iban if moyen and moyen.banque_iban else '' }}" class="finput mono" placeholder="SN28 0100 1234 5678 9012 3456 789 ou compte local">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">SWIFT / BIC</label>
+        <input type="text" name="banque_swift" value="{{ moyen.banque_swift if moyen and moyen.banque_swift else '' }}" class="finput mono" placeholder="BHSASNDA">
+      </div>
+      <div class="fgroup">
+        <label class="flabel">Téléphone banque <span style="font-weight:400;color:#94a3b8;text-transform:none">(optionnel)</span></label>
+        <div class="fg-ico">
+          <svg class="ico" width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+          <input type="tel" name="banque_telephone" id="inp-tel-bank" value="{{ moyen.telephone if moyen and moyen.telephone else '' }}" class="finput" placeholder="+221 33 000 00 00">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── QR Code ── -->
+  <div class="card">
+    <div class="sect-t">🔲 QR Code <span style="font-weight:400;font-size:11px;color:#94a3b8">optionnel — PNG fond blanc recommandé</span></div>
+
+    <!-- QR existant -->
+    <div id="qrExistant" style="display:{{ 'flex' if moyen and moyen.qr_filename else 'none' }};gap:16px;align-items:center;margin-bottom:16px;padding:14px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0">
+      <div style="width:96px;height:96px;background:#fff;border-radius:8px;border:1.5px solid #e2e8f0;padding:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        {% if moyen and moyen.qr_filename %}
+        <img src="/uploads/qr/{{ moyen.qr_filename }}" id="qrExistantImg" alt="QR"
+             style="max-width:100%;max-height:100%;object-fit:contain;cursor:zoom-in"
+             onclick="openLB(['/uploads/qr/{{ moyen.qr_filename }}'],0)">
+        {% else %}
+        <img src="" id="qrExistantImg" alt="QR" style="max-width:100%;max-height:100%;object-fit:contain">
+        {% endif %}
+      </div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700;color:#1e293b;margin-bottom:3px">QR Code enregistré</div>
+        <div class="sub-t" style="margin-bottom:10px">Apparaît à gauche des totaux sur la facture PDF</div>
+        <span class="badge bg-g">✓ QR actif</span>
+        <div style="margin-top:10px">
+          <button type="button" id="btnDelQr" class="btn btn-del btn-sm" onclick="supprimerQrAjax()">🗑 Supprimer le QR</button>
+          <span id="delQrSpinner" style="display:none;font-size:12px;color:#94a3b8;margin-left:8px">Suppression…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Zone upload QR -->
+    <div>
+      <div style="font-size:12px;font-weight:600;color:#64748b;margin-bottom:8px" id="uploadLabel">
+        {% if moyen and moyen.qr_filename %}Remplacer le QR code{% else %}Uploader un QR code{% endif %}
+      </div>
+      <div class="img-drop-zone" id="qrDrop">
+        <input type="file" name="qr_file" id="qrInput" accept="image/*" onchange="previewQR(this)">
+        <div style="pointer-events:none">
+          <div style="font-size:30px;margin-bottom:8px">🔲</div>
+          <div style="font-size:13px;font-weight:650;color:#475569">Glissez votre QR code ici</div>
+          <div style="font-size:11.5px;color:#94a3b8;margin-top:4px">PNG, JPG — idéalement carré, fond blanc</div>
+        </div>
+      </div>
+      <div id="qrPreview" style="display:none;margin-top:12px;text-align:center">
+        <div style="display:inline-block;padding:8px;background:#fff;border-radius:10px;border:2px solid var(--p)">
+          <img id="qrPreviewImg" src="" alt="" style="width:110px;height:110px;object-fit:contain;display:block">
+        </div>
+        <div style="font-size:11px;color:#10b981;font-weight:600;margin-top:6px">✓ Prêt à enregistrer</div>
+        <button type="button" onclick="clearQrPreview()" style="display:block;margin:6px auto 0;font-size:11px;color:#94a3b8;background:none;border:none;cursor:pointer;text-decoration:underline">Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Bouton save ── -->
+  <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center">
+    <a href="/paiements" class="btn btn-s">Annuler</a>
+    <button type="submit" class="btn btn-p btn-lg" id="btnSave">
+      {% if moyen %}💾 Enregistrer les modifications{% else %}✓ Créer le moyen de paiement{% endif %}
+    </button>
+  </div>
+</form>
+</div>
+
+<script>
+const MOYEN_ID = {{ moyen.id if moyen else 'null' }};
+
+// ── Type switcher ──────────────────────────────────────────
+function switchType(t){
+  const isMobile = (t==='mobile');
+  document.getElementById('bloc-mobile').style.display   = isMobile ? 'block' : 'none';
+  document.getElementById('bloc-bancaire').style.display = isMobile ? 'none'  : 'block';
+  // Sync tel field: only one name="telephone" should be active
+  // (both have name=telephone, backend takes whichever is in visible bloc)
+  const styles = [
+    {id:'lbl-mobile',   ico:'ico-mobile',   active: isMobile},
+    {id:'lbl-bancaire', ico:'ico-bancaire',  active: !isMobile},
+  ];
+  styles.forEach(({id, ico, active}) => {
+    const lbl = document.getElementById(id);
+    const ic  = document.getElementById(ico);
+    lbl.style.borderColor = active ? 'var(--p)' : '#e2e8f0';
+    lbl.style.background  = active ? 'var(--p-soft)' : '#fafbff';
+    ic.style.background   = active ? 'var(--p)' : '#e2e8f0';
+  });
+}
+
+// ── QR Preview ────────────────────────────────────────────
+function previewQR(input){
+  const file = input.files[0]; if(!file) return;
+  const r = new FileReader();
+  r.onload = e => {
+    document.getElementById('qrPreviewImg').src = e.target.result;
+    document.getElementById('qrPreview').style.display = 'block';
+  };
+  r.readAsDataURL(file);
+}
+
+function clearQrPreview(){
+  document.getElementById('qrInput').value = '';
+  document.getElementById('qrPreview').style.display = 'none';
+}
+
+// ── Drag drop QR ──────────────────────────────────────────
+const dz = document.getElementById('qrDrop');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('drag-over');
+  const dt = new DataTransfer();
+  Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/')).slice(0,1).forEach(f => dt.items.add(f));
+  const inp = document.getElementById('qrInput');
+  inp.files = dt.files;
+  previewQR(inp);
+});
+
+// ── Supprimer QR via AJAX (sans quitter la page) ──────────
+async function supprimerQrAjax(){
+  if(!MOYEN_ID) return;
+  if(!confirm('Supprimer ce QR code ?')) return;
+  const btn = document.getElementById('btnDelQr');
+  const spin = document.getElementById('delQrSpinner');
+  btn.disabled = true; spin.style.display = 'inline';
+  try {
+    const r = await fetch(`/paiements/${MOYEN_ID}/qr/supprimer`, {
+      method: 'POST',
+      headers: {'X-Requested-With':'XMLHttpRequest'}
+    });
+    const data = await r.json();
+    if(data.ok){
+      // Hide the QR existant block
+      document.getElementById('qrExistant').style.display = 'none';
+      document.getElementById('uploadLabel').textContent = 'Uploader un QR code';
+      // Show success feedback inline
+      const fb = document.createElement('div');
+      fb.className = 'flash flash-success'; fb.style.marginTop = '8px';
+      fb.innerHTML = '✓ QR supprimé. Cliquez "Enregistrer" pour valider les autres modifications.';
+      document.getElementById('qrDrop').parentNode.insertBefore(fb, document.getElementById('qrDrop'));
+      setTimeout(() => fb.remove(), 4000);
+    } else {
+      alert('Erreur : ' + (data.error || 'Inconnue'));
+    }
+  } catch(e) {
+    alert('Erreur réseau : ' + e.message);
+  } finally {
+    btn.disabled = false; spin.style.display = 'none';
+  }
+}
+</script>
+{% endblock %}

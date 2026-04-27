@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Connexion — {{ params.get('boutique_nom','Gestion Commerciale') }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--p:{{ params.get('couleur_primaire','#1a56db') }}}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:linear-gradient(135deg,var(--p) 0%,color-mix(in srgb,var(--p) 60%,#000) 100%);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:#fff;border-radius:20px;padding:44px 40px;width:100%;max-width:420px;box-shadow:0 24px 80px rgba(0,0,0,.25)}
+.logo{width:64px;height:64px;border-radius:16px;background:var(--p);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;color:#fff;margin:0 auto 20px;overflow:hidden}
+.logo img{width:100%;height:100%;object-fit:contain;padding:6px}
+h1{font-size:22px;font-weight:800;color:#1e293b;text-align:center;margin-bottom:4px}
+.sub{font-size:13px;color:#94a3b8;text-align:center;margin-bottom:28px}
+.err{background:#fef2f2;border:1px solid #fecaca;border-left:3px solid #dc2626;color:#b91c1c;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:18px}
+label{display:block;font-size:11.5px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.inp-wrap{position:relative}
+input[type=password]{width:100%;padding:11px 44px 11px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-family:inherit;outline:none;transition:border .15s,box-shadow .15s;color:#1e293b}
+input[type=password]:focus{border-color:var(--p);box-shadow:0 0 0 3px color-mix(in srgb,var(--p) 15%,#fff)}
+.eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94a3b8;font-size:18px;line-height:1}
+.eye:hover{color:var(--p)}
+.btn{width:100%;padding:12px;background:var(--p);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:20px;transition:opacity .15s}
+.btn:hover{opacity:.88}
+.hint{font-size:11.5px;color:#94a3b8;text-align:center;margin-top:16px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    {% if logo_url %}<img src="{{ logo_url }}" alt="logo">
+    {% else %}{{ params.get('logo_text','MB') }}{% endif %}
+  </div>
+  <h1>{{ params.get('boutique_nom','Ma Boutique') }}</h1>
+  <div class="sub">Gestion Commerciale — Espace Admin</div>
+  {% if error %}<div class="err">🔒 {{ error }}</div>{% endif %}
+  <form method="post">
+    <label for="pwd">Mot de passe</label>
+    <div class="inp-wrap">
+      <input type="password" id="pwd" name="password" placeholder="••••••••" autofocus autocomplete="current-password">
+      <button type="button" class="eye" onclick="togglePwd()" id="eyeBtn">👁</button>
+    </div>
+    <button type="submit" class="btn">Connexion →</button>
+  </form>
+  <div class="hint">Mot de passe par défaut : 123456<br>Modifiable dans Paramètres</div>
+</div>
+<script>
+function togglePwd(){
+  const i=document.getElementById('pwd'),b=document.getElementById('eyeBtn');
+  if(i.type==='password'){i.type='text';b.textContent='🙈';}else{i.type='password';b.textContent='👁';}
+}
+</script>
+</body>
+</html>
